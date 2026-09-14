@@ -38,6 +38,13 @@ def copy_sheet(source_file, destination_file, sheet_name):
     
     destination_sheet = destination_wb.create_sheet(title=sheet_name)
 
+    # Copy the sheet tab color, if present.
+    try:
+        if source_sheet.sheet_properties.tabColor is not None:
+            destination_sheet.sheet_properties.tabColor = copy.copy(source_sheet.sheet_properties.tabColor)
+    except Exception:
+        pass
+
     # Copy cell values and formatting from source to destination
     for row in source_sheet.iter_rows():
         for cell in row:

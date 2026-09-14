@@ -11,38 +11,45 @@ import copy
 from pathlib import Path
 
 # Function to copy a sheet from source workbook to destination workbook
-def copy_sheet(source_file, destination_file, sheet_name):
-    destination_file = Path(destination_file)
+def copy_sheet(source_file, out_file, source_sheet_name, out_sheet_name):
+    out_file = Path(out_file)
 
     # Load the source workbook once for formatting and once for cached values.
     source_wb = load_workbook(source_file, data_only=False)
     source_values_wb = load_workbook(source_file, data_only=True)
-    if sheet_name not in source_wb.sheetnames:
-        messagebox.showerror("Error", f"Sheet '{sheet_name}' not found in source workbook.")
+    if source_sheet_name not in source_wb.sheetnames:
+        messagebox.showerror("Error", f"Sheet '{source_sheet_name}' not found in source workbook.")
         return
     
-    source_sheet = source_wb[sheet_name]
-    source_values_sheet = source_values_wb[sheet_name]
+    source_sheet = source_wb[source_sheet_name]
+    source_values_sheet = source_values_wb[source_sheet_name]
 
     # Load or create the destination workbook
-    if destination_file.exists():
-        destination_wb = load_workbook(destination_file)
+    if out_file.exists():
+        out_wb = load_workbook(out_file)
     else:
-        destination_wb = openpyxl.Workbook()
-        destination_wb.remove(destination_wb.active)  # Remove the default sheet
+        out_wb = openpyxl.Workbook()
+        out_wb.remove(out_wb.active)  # Remove the default sheet
 
     # Create a new sheet in the destination workbook with the same name
-    if sheet_name in destination_wb.sheetnames:
-        messagebox.showerror("Error", f"Sheet '{sheet_name}' already exists in destination workbook.")
+    if out_sheet_name in out_wb.sheetnames:
+        messagebox.showerror("Error", f"Sheet '{out_sheet_name}' already exists in destination workbook.")
         return
     
-    destination_sheet = destination_wb.create_sheet(title=sheet_name)
+    out_sheet = out_wb.create_sheet(title=out_sheet_name)
+
+    # Copy the sheet tab color, if present.
+    try:
+        if source_sheet.sheet_properties.tabColor is not None:
+            out_sheet.sheet_properties.tabColor = copy.copy(source_sheet.sheet_properties.tabColor)
+    except Exception:
+        pass
 
     # Copy cell values and formatting from source to destination
     for row in source_sheet.iter_rows():
         for cell in row:
             value = source_values_sheet.cell(row=cell.row, column=cell.column).value
-            new_cell = destination_sheet.cell(row=cell.row, column=cell.column, value=value)
+            new_cell = out_sheet.cell(row=cell.row, column=cell.column, value=value)
             if cell.has_style:
                 new_cell.font = copy.copy(cell.font)
                 new_cell.border = copy.copy(cell.border)
@@ -53,13 +60,13 @@ def copy_sheet(source_file, destination_file, sheet_name):
 
     # Copy merged cell ranges, such as A1:C1.
     for merged_range in source_sheet.merged_cells.ranges:
-        destination_sheet.merge_cells(str(merged_range))
+        out_sheet.merge_cells(str(merged_range))
 
     # copy column widths
     try:
         for col, dim in source_sheet.column_dimensions.items():
             if dim and dim.width:
-                destination_sheet.column_dimensions[col].width = dim.width
+                out_sheet.column_dimensions[col].width = dim.width
     except Exception:
         pass
 
@@ -67,13 +74,13 @@ def copy_sheet(source_file, destination_file, sheet_name):
     try:
         for idx, dim in source_sheet.row_dimensions.items():
             if dim and dim.height:
-                destination_sheet.row_dimensions[idx].height = dim.height
+                out_sheet.row_dimensions[idx].height = dim.height
     except Exception:
         pass
     
     # Save the destination workbook
-    destination_wb.save(destination_file)
-    messagebox.showinfo("Success", f"Sheet '{sheet_name}' copied successfully to '{destination_file}'.")
+    out_wb.save(out_file)
+    messagebox.showinfo("Success", f"Sheet '{source_sheet_name}' copied successfully to '{out_sheet_name}','{out_file}'.")
 
 # GUI setup to allow user to select source and destination files and specify the sheet name
 def main():
@@ -87,19 +94,22 @@ def main():
         return
 
     # Ask user to select destination workbook
-    destination_file = filedialog.askopenfilename(title="Select Destination Workbook", filetypes=[("Excel files", "*.xlsx")])
-    if not destination_file:
+    out_file = filedialog.askopenfilename(title="Select Destination Workbook", filetypes=[("Excel files", "*.xlsx")])
+    if not out_file:
         messagebox.showerror("Error", "No destination workbook selected.")
         return
 
-    # Ask user for the sheet name to copy
-    sheet_name = tk.simpledialog.askstring("Input", "Enter the name of the sheet to copy:")
-    if not sheet_name:
-        messagebox.showerror("Error", "No sheet name provided.")
+    # Ask user to specify destination sheet name prefix
+    out_sheet_prefix = tk.simpledialog.askstring("Input", "Enter the prefix for the destination sheet names:")
+    if not out_sheet_prefix:
+        messagebox.showerror("Error", "No destination sheet name prefix provided.")
         return
 
-    # Call the function to copy the sheet
-    copy_sheet(source_file, destination_file, sheet_name)
+    # Call the function to copy the sheets
+    copy_sheet(source_file, out_file, "10-year budget", f"{out_sheet_prefix} 10yr")
+    copy_sheet(source_file, out_file, "ocact estimate", f"{out_sheet_prefix} TF %TP")
+    copy_sheet(source_file, out_file, "#SBSSIYearAndQuintile", f"{out_sheet_prefix} SBSSI")
+    copy_sheet(source_file, out_file, "poverty compare", f"{out_sheet_prefix} Pov")   
 
 #Run program
 main()
