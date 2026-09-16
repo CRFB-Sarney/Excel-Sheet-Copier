@@ -10,6 +10,8 @@ import copy
 
 from pathlib import Path
 
+from datetime import datetime
+
 # Function to copy a sheet from source workbook to destination workbook
 def copy_sheet(source_file, out_file, source_sheet_name, out_sheet_name):
     out_file = Path(out_file)
@@ -80,7 +82,8 @@ def copy_sheet(source_file, out_file, source_sheet_name, out_sheet_name):
     
     # Save the destination workbook
     out_wb.save(out_file)
-    messagebox.showinfo("Success", f"Sheet '{source_sheet_name}' copied successfully to '{out_sheet_name}','{out_file}'.")
+
+    print(f"At {datetime.now().strftime('%H:%M:%S')}: Copied '{source_sheet_name}' to '{out_sheet_name}'.")
 
 # GUI setup to allow user to select source and destination files and specify the sheet name
 def main():
@@ -106,10 +109,12 @@ def main():
         return
 
     # Call the function to copy the sheets
+    print(f"At {datetime.now().strftime('%H:%M:%S')}: began copying sheets.")
     copy_sheet(source_file, out_file, "10-year budget", f"{out_sheet_prefix} 10yr")
-    copy_sheet(source_file, out_file, "ocact estimate", f"{out_sheet_prefix} TF %TP")
-    copy_sheet(source_file, out_file, "#SBSSIYearAndQuintile", f"{out_sheet_prefix} SBSSI")
+    copy_sheet(source_file, out_file, "OCACT estimate", f"{out_sheet_prefix} TF %TP")
+    copy_sheet(source_file, out_file, "$SSBSSIbyYearAndQuintile", f"{out_sheet_prefix} SSBSSI")
     copy_sheet(source_file, out_file, "poverty compare", f"{out_sheet_prefix} Pov")   
+    print(f"Done at {datetime.now().strftime('%H:%M:%S')}!", f"Sheets from '{source_file}' copied to '{out_file}'.")
 
 #Run program
 main()
